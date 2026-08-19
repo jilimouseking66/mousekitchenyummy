@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<!-- =========手机适配核心标签========= -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>老鼠食堂</title>
+<style>
+*{box-sizing:border-box;font-family:"Microsoft Yahei",sans-serif;}
+body{
+    background:#2c342c;
+    color:#e8e9dd;
+    padding:12px; /*手机缩小边距*/
+    max-width:1100px;
+    margin:0 auto;
+    line-height:1.6;
+}
+.box{
+    background:#3a443a;
+    padding:14px;
+    border-radius:10px;
+    margin:10px 0;
+    border:1px solid #556055;
+}
+button{
+    background:#6b7c5e;
+    color:#fff;
+    border:none;
+    padding:12px 14px; /*加大内边距，手指好点*/
+    min-height:44px; /*移动端触控最小高度*/
+    border-radius:6px;
+    margin:4px;
+    cursor:pointer;
+    font-size:15px;
+}
+button:hover{background:#7d906e;}
+button:disabled{background:#444;color:#888;cursor:not-allowed;}
+
+input[type="number"]{
+    width:70px;
+    padding:10px 6px;
+    font-size:16px; /*ios防自动缩放*/
+    background:#222;color:#eee;
+    border:1px solid #666;border-radius:4px;
+}
+input[type="text"]{
+    width:100%;
+    padding:10px;
+    font-size:16px; /*ios防自动缩放*/
+    background:#222;color:#eee;
+    border:1px solid #666;border-radius:4px;
+}
+.log{
+    background:#272e27;
+    padding:12px;
+    max-height:320px;
+    overflow-y:auto;
+    border-radius:6px;
+    margin:10px 0;
+    font-size:14px;
+    white-space:pre-wrap;
+    width:100%;
+}
+.hidden{display:none !important;}
+.attr-row{margin:8px 0;}
+
+.flex-row{
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap; /*小屏幕自动换行上下排列*/
+}
+.col{
+    flex:1;
+    min-width:280px; /*手机最小宽度，不够就换行*/
+}
+
+.warn{color:#ffbb77;}
+.bad{color:#ff8888;}
+.good{color:#88ee99;}
+</style>
+</head>
+<body>
+<!-- ========== 页面1：主页面 ========== -->
+<div id="pageMain" class="box">
+    <h1>老鼠食堂</h1>
+    <div>[这里插入图片：图一 主页面]</div>
+    <p>经营你的老鼠食堂，分配属性点数，完成一整套做菜经营流程。</p>
+    <button onclick="goNameInput()">开始游戏</button>
+</div>
+
+<!-- ========== 新增页面：玩家姓名填写 ========== -->
+<div id="pageName" class="box hidden">
+    <h2>报上你的名字</h2>
+    <p>请输入你的角色名字：</p>
+    <input type="text" id="playerNameInput" placeholder="输入角色名称">
+    <br><br>
+    <button onclick="submitPlayerName()">确认名字，前往属性分配</button>
+</div>
+
+<!-- ========== 页面2 属性分配页面 总点数100 ========== -->
+<div id="pageAttr" class="box hidden">
+    <h2>分配角色基础属性（总点数必须等于100）</h2>
+    <p>数值＞10 = 强项；数值＜10 = 弱项；点数会影响骰子成功率</p>
+    <p>剩余可用点数：<span id="remainPoint">100</span></p>
+    <div id="attrWrap"></div>
+    <button onclick="confirmAttr()">确认属性，进入选菜单</button>
+</div>
+<!-- ========== 页面3 选择菜品菜单 ========== -->
+<div id="pageDish" class="box hidden">
+    <h2>选择要制作的菜品</h2>
+    <div class="box">
+        <h3>菜品列表（后期新增菜品在此处扩展）</h3>
+        <div><label><input type="radio" name="dishSel" value="菜1" checked>菜1</label></div>
+        <div><label><input type="radio" name="dishSel" value="菜2">菜2</label></div>
+    </div>
+    <button onclick="enterGame()">确认选择，进入食堂操作</button>
+</div>
+<!-- ========== 页面4 游戏主操作页 ========== -->
+<div id="pageGame" class="box hidden">
+    <div class="flex-row">
+        <div class="col">
+            <h3>本局状态</h3>
+            <div>角色名字：<span id="curPlayerName">-</span></div>
+            <div>当前菜品：<span id="curDish">-</span></div>
+            <div>体力：<span id="staEp">100</span></div>
+            <div>差评标记：<span id="badFlag">无</span></div>
+            <div class="box">
+                <h4>操作模式</h4>
+                <button onclick="modeSingle()">【左：单独一项环节】</button>
+                <button onclick="modeFull()">【右：全流程自动跑完】</button>
+            </div>
+            <div id="singleSelWrap" class="box hidden">
+                <p>请挑选要执行的一个环节：</p>
+                <div id="selStepWrap"></div>
+                <button onclick="runOneStep()">执行选中环节掷骰</button>
+            </div>
+        </div>
+        <div class="col">
+            <h3>事件日志</h3>
+            <div id="gameLog" class="log"></div>
+        </div>
+    </div>
+    <hr>
+    <button onclick="endRound()">结束本局结算</button>
+    <button onclick="newRound()">开启新一局（重置标记体力）</button>
+</div>
+<!-- ========== 结算结局页面 ========== -->
+<div id="pageEnd" class="box hidden">
+    <h2>本局结算</h2>
+    <div id="endImgBox"></div>
+    <div id="endText"></div>
+    <button onclick="newRound()">重新开一局</button>
+</div>
+<script>
+// ===================== 配置数据区，你所有剧情文本在这里修改 =====================
+const ATTR_LIST = [
+    {key:"sight",name:"视觉"},
+    {key:"smell",name:"嗅觉"},
+    {key:"taste",name:"味觉"},
+    {key:"touch",name:"触觉"},
+    {key:"hear",name:"听觉"},
+    {key:"body",name:"身体体能"},
+    {key:"memShort",name:"短时记忆"},
+    {key:"multiTask",name:"多任务处理"},
+    {key:"adapt",name:"临场应变"},
+    {key:"riskCalm",name:"风险警觉+情绪抗压"},
+];
+//7个环节配置：环节名称、关联属性key、各等级文本、小事件abc文本
+const STEPS = [
+    {
+        id:"buy",
+        name:"采购",
+        bonusAttr:["sight","smell","body","memShort","adapt"],
+        textGreat:["{playerName}测试文本采购1","{playerName}测试文本采购2"],
+        textOk:["{playerName}测试文本采购3","{playerName}测试文本采购4"],
+        textFail:["{playerName}测试文本采购5","{playerName}测试文本采购6"],
+        textBadFail:["{playerName}测试文本采购7","{playerName}测试文本采购8"],
+        eventABC:["{playerName}测试文本采购小事件a","{playerName}测试文本采购小事件b","{playerName}测试文本采购小事件c"]
+    },
+    {
+        id:"prep",
+        name:"备菜切配预制",
+        bonusAttr:["sight","touch","body","memShort","riskCalm"],
+        textGreat:["{playerName}测试文本备菜切配预制1","{playerName}测试文本备菜切配预制2"],
+        textOk:["{playerName}测试文本备菜切配预制3","{playerName}测试文本备菜切配预制4"],
+        textFail:["{playerName}测试文本备菜切配预制5","{playerName}测试文本备菜切配预制6"],
+        textBadFail:["{playerName}测试文本备菜切配预制7","{playerName}测试文本备菜切配预制8"],
+        eventABC:["{playerName}测试文本备菜切配预制小事件a","{playerName}测试文本备菜切配预制小事件b","{playerName}测试文本备菜切配预制小事件c"]
+    },
+    {
+        id:"receive",
+        name:"接单接待客人",
+        bonusAttr:["sight","hear","memShort","multiTask","adapt"],
+        textGreat:["{playerName}测试文本接单接待客人1","{playerName}测试文本接单接待客人2"],
+        textOk:["{playerName}测试文本接单接待客人3","{playerName}测试文本接单接待客人4"],
+        textFail:["{playerName}测试文本接单接待客人5","{playerName}测试文本接单接待客人6"],
+        textBadFail:["{playerName}测试文本接单接待客人7","{playerName}测试文本接单接待客人8"],
+        eventABC:["{playerName}测试文本接单接待客人小事件a","{playerName}测试文本接单接待客人小事件b","{playerName}测试文本接单接待客人小事件c"]
+    },
+    {
+        id:"cook",
+        name:"烹饪出餐",
+        bonusAttr:["sight","smell","taste","touch","hear","body","multiTask","riskCalm"],
+        textGreat:["{playerName}测试文本烹饪出餐1","{playerName}测试文本烹饪出餐2"],
+        textOk:["{playerName}测试文本烹饪出餐3","{playerName}测试文本烹饪出餐4"],
+        textFail:["{playerName}测试文本烹饪出餐5","{playerName}测试文本烹饪出餐6"],
+        textBadFail:["{playerName}测试文本烹饪出餐7","{playerName}测试文本烹饪出餐8"],
+        eventABC:["{playerName}测试文本烹饪出餐小事件a","{playerName}测试文本烹饪出餐小事件b","{playerName}测试文本烹饪出餐小事件c"]
+    },
+    {
+        id:"serve",
+        name:"上菜",
+        bonusAttr:["sight","hear","touch","body","memShort"],
+        textGreat:["{playerName}测试文本上菜1","{playerName}测试文本上菜2"],
+        textOk:["{playerName}测试文本上菜3","{playerName}测试文本上菜4"],
+        textFail:["{playerName}测试文本上菜5","{playerName}测试文本上菜6"],
+        textBadFail:["{playerName}测试文本上菜7","{playerName}测试文本上菜8"],
+        eventABC:["{playerName}测试文本上菜小事件a","{playerName}测试文本上菜小事件b","{playerName}测试文本上菜小事件c"]
+    },
+    {
+        id:"service",
+        name:"席间服务",
+        bonusAttr:["sight","hear","multiTask","adapt"],
+        textGreat:["{playerName}测试文本席间服务1","{playerName}测试文本席间服务2"],
+        textOk:["{playerName}测试文本席间服务3","{playerName}测试文本席间服务4"],
+        textFail:["{playerName}测试文本席间服务5","{playerName}测试文本席间服务6"],
+        textBadFail:["{playerName}测试文本席间服务7","{playerName}测试文本席间服务8"],
+        eventABC:["{playerName}测试文本席间服务小事件a","{playerName}测试文本席间服务小事件b","{playerName}测试文本席间服务小事件c"]
+    },
+    {
+        id:"pay",
+        name:"结账收台防跑单",
+        bonusAttr:["sight","hear","body","memShort"],
+        textGreat:["{playerName}测试文本结账收台防跑单1","{playerName}测试文本结账收台防跑单2"],
+        textOk:["{playerName}测试文本结账收台防跑单3","{playerName}测试文本结账收台防跑单4"],
+        textFail:["{playerName}测试文本结账收台防跑单5","{playerName}测试文本结账收台防跑单6"],
+        textBadFail:["{playerName}测试文本结账收台防跑单7","{playerName}测试文本结账收台防跑单8"],
+        eventABC:["{playerName}测试文本结账收台防跑单小事件a","{playerName}测试文本结账收台防跑单小事件b","{playerName}测试文本结账收台防跑单小事件c"]
+    }
+];
+// ========== 全局游戏状态 ==========
+let gameState = {
+    playerName:"", //新增玩家名字
+    attr:{}, //10项属性
+    dish:"菜1",
+    stamina:100, //体力
+    hasBadFail:false, //是否出现过大失败标记（差评锁）
+    hasAnyGreat:false, //本局有没有过大成功
+    curStepIdx:0,
+    selectedStep:null,
+};
+
+//文本替换工具，把 {playerName} 替换为真实角色名
+function renderText(str){
+    return str.replaceAll("{playerName}", gameState.playerName);
+}
+
+//页面切换
+function hideAll(){
+    ["pageMain","pageName","pageAttr","pageDish","pageGame","pageEnd"].forEach(id=>document.getElementById(id).classList.add("hidden"));
+}
+function goNameInput(){hideAll();document.getElementById("pageName").classList.remove("hidden");}
+function goAttr(){hideAll();document.getElementById("pageAttr").classList.remove("hidden");renderAttr();}
+function goMain(){hideAll();document.getElementById("pageMain").classList.remove("hidden");}
+
+//提交玩家姓名
+function submitPlayerName(){
+    const nameInput = document.getElementById("playerNameInput");
+    const nameVal = nameInput.value.trim();
+    if(!nameVal){
+        alert("请输入角色名字！");
+        return;
+    }
+    gameState.playerName = nameVal;
+    alert("你可来了，大伙都在等你干活嘞！");
+    goAttr();
+}
+
+//渲染属性分配界面
+function renderAttr(){
+    const wrap = document.getElementById("attrWrap");
+    wrap.innerHTML="";
+    ATTR_LIST.forEach(a=>{
+        const div = document.createElement("div");
+        div.className="attr-row";
+        div.innerHTML = `${a.name}：<input type="number" min="0" max="100" value="10" data-key="${a.key}">`;
+        wrap.appendChild(div);
+    });
+    calcRemain();
+    wrap.querySelectorAll("input").forEach(inp=>inp.oninput=calcRemain);
+}
+function calcRemain(){
+    let sum=0;
+    document.querySelectorAll("#attrWrap input").forEach(i=>sum+=Number(i.value||0));
+    document.getElementById("remainPoint").innerText = 100 - sum;
+}
+function confirmAttr(){
+    let sum=0;
+    const obj={};
+    document.querySelectorAll("#attrWrap input").forEach(inp=>{
+        const v = Number(inp.value||0);
+        obj[inp.dataset.key]=v;
+        sum+=v;
+    });
+    if(sum!==100){alert(`总点数必须等于100，当前总和：${sum}`);return;}
+    gameState.attr = obj;
+    hideAll();
+    document.getElementById("pageDish").classList.remove("hidden");
+}
+//进入游戏页
+function enterGame(){
+    const sel = document.querySelector('input[name="dishSel"]:checked');
+    gameState.dish = sel.value;
+    resetGameVars();
+    hideAll();
+    document.getElementById("pageGame").classList.remove("hidden");
+    refreshGameUi();
+    addLog(`===== 本局开始｜角色：${gameState.playerName}｜菜品：${gameState.dish} =====`);
+    renderStepSelect();
+}
+//重置本局变量（新开一局）
+function resetGameVars(){
+    gameState.stamina = 100;
+    gameState.hasBadFail = false;
+    gameState.hasAnyGreat = false;
+    gameState.selectedStep=null;
+    document.getElementById("gameLog").innerText="";
+}
+function newRound(){
+    //新开一局清空名字输入框，回到姓名填写
+    document.getElementById("playerNameInput").value = "";
+    gameState.playerName = "";
+    resetGameVars();
+    goNameInput();
+}
+//渲染环节单选列表
+function renderStepSelect(){
+    const w = document.getElementById("selStepWrap");
+    w.innerHTML="";
+    STEPS.forEach((s,idx)=>{
+        const div = document.createElement("div");
+        div.innerHTML=`<label><input type="radio" name="stepPick" value="${idx}">${s.name}</label>`;
+        w.appendChild(div);
+    })
+}
+function modeSingle(){
+    document.getElementById("singleSelWrap").classList.remove("hidden");
+    addLog(">> 模式切换：单独执行某一个环节，可以重复刷同一个环节");
+}
+function modeFull(){
+    document.getElementById("singleSelWrap").classList.add("hidden");
+    addLog(">> 模式切换：全流程自动依次跑完7个环节");
+    runFullAuto();
+}
+//刷新界面状态显示
+function refreshGameUi(){
+    document.getElementById("curPlayerName").innerText = gameState.playerName;
+    document.getElementById("curDish").innerText = gameState.dish;
+    document.getElementById("staEp").innerText = gameState.stamina;
+    document.getElementById("badFlag").innerText = gameState.hasBadFail?"【已标记差评】":"无";
+}
+function addLog(txt){
+    const logDom = document.getElementById("gameLog");
+    logDom.innerText += txt+"\n";
+    logDom.scrollTop = logDom.scrollHeight;
+}
+// 掷骰子核心逻辑 ✨已更新区间：大成功1‑10，成功11‑50，普通失败51‑90，大失败91‑100
+function rollStep(stepConf){
+    //计算该环节属性加分总和
+    let bonusTotal = 0;
+    stepConf.bonusAttr.forEach(k=>{bonusTotal += gameState.attr[k];});
+    let baseRoll = Math.floor(Math.random()*100)+1; //1‑100原始骰点
+    //体力0惩罚：大失败概率提升到60%
+    let finalRoll;
+    if(gameState.stamina <= 0){
+        //体力归零：60%概率直接判定大失败
+        const r = Math.random();
+        if(r <=0.6){
+            finalRoll = 95;
+        }else{
+            finalRoll = baseRoll;
+        }
+    }else{
+        finalRoll = baseRoll;
+    }
+    //属性加分偏移：加分总和会降低最终骰点（数值越低越好）
+    finalRoll = Math.max(1, Math.min(100, finalRoll - Math.floor(bonusTotal/4)));
+
+    // ============ 新判定区间 ============
+    let rank;
+    if(finalRoll <=10) rank="great";        //大成功 1‑10
+    else if(finalRoll <=50) rank="ok";      //成功 11‑50
+    else if(finalRoll <=90) rank="fail";    //普通失败 51‑90
+    else rank="badFail";                    //大失败 91‑100
+
+    let eventText=null;
+    //大失败20%触发神秘小事件
+    if(rank==="badFail"){
+        if(Math.random() <=0.2){
+            const ei = Math.floor(Math.random()*3);
+            eventText = renderText(stepConf.eventABC[ei]);
+        }
+    }
+    return {rank,roll:baseRoll,finalRoll,eventText};
+}
+//执行单个环节
+async function doOneStep(stepIdx){
+    const sc = STEPS[stepIdx];
+    addLog(`\n--------【环节：${sc.name}】--------`);
+    const res = rollStep(sc);
+    addLog(`原始骰子：${res.roll}｜属性修正后判定值：${res.finalRoll}`);
+    if(res.rank==="great"){
+        //大成功：加体力，前进工序
+        const rawTxt = sc.textGreat[Math.floor(Math.random()*sc.textGreat.length)];
+        const txt = renderText(rawTxt);
+        addLog(`✅【大成功】${txt}`);
+        gameState.stamina = Math.min(150, gameState.stamina +12);
+        gameState.hasAnyGreat = true;
+    }else if(res.rank==="ok"){
+        const rawTxt = sc.textOk[Math.floor(Math.random()*sc.textOk.length)];
+        const txt = renderText(rawTxt);
+        addLog(`🟢【成功】${txt}`);
+    }else if(res.rank==="fail"){
+        //普通失败：扣体力，停留在本环节，可以重试，不打差评标记
+        const rawTxt = sc.textFail[Math.floor(Math.random()*sc.textFail.length)];
+        const txt = renderText(rawTxt);
+        addLog(`🟡【普通失败】${txt}`);
+        gameState.stamina -=10;
+        addLog("⚠️ 停留在当前工序，可以再次执行本环节重试。");
+    }else if(res.rank==="badFail"){
+        //大失败：扣大量体力，打上差评标记，直接推进，20%小事件
+        const rawTxt = sc.textBadFail[Math.floor(Math.random()*sc.textBadFail.length)];
+        const txt = renderText(rawTxt);
+        addLog(`🔴【大失败】${txt}`);
+        gameState.stamina -=25;
+        gameState.hasBadFail = true;
+        if(res.eventText){
+            addLog(`💥神秘小事件：${res.eventText}`);
+        }
+    }
+    refreshGameUi();
+}
+//单独模式：执行选中那一项
+async function runOneStep(){
+    const sel = document.querySelector('input[name="stepPick"]:checked');
+    if(!sel){alert("请选择一个环节！");return;}
+    const idx = Number(sel.value);
+    await doOneStep(idx);
+}
+//全流程模式，依次跑完7个环节
+async function runFullAuto(){
+    for(let i=0;i<STEPS.length;i++){
+        await doOneStep(i);
+        await sleep(600);
+    }
+    addLog("\n>>>>>全部环节执行完毕，可以点击【结束本局结算】查看结局");
+}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+//结算本局结局
+function endRound(){
+    hideAll();
+    const endPage = document.getElementById("pageEnd");
+    endPage.classList.remove("hidden");
+    const imgBox = document.getElementById("endImgBox");
+    const textDom = document.getElementById("endText");
+    if(gameState.hasBadFail){
+        //只要有一次大失败 →差评结局
+        imgBox.innerHTML = `<div>[插入图片：图三 差评]</div>`;
+        textDom.innerHTML = `<h3 class="bad">本局结局：顾客差评</h3>
+        <p>${gameState.playerName}本局发生过大失败失误，触发差评标记，无法获得好评。</p>
+        <p>最终体力：${gameState.stamina}</p>`;
+    }else{
+        //没有大失败 +出现过任意大成功=好评
+        if(gameState.hasAnyGreat){
+            imgBox.innerHTML = `<div>[插入图片：图二 好评]</div>`;
+            textDom.innerHTML = `<h3 class="good">本局结局：顾客好评</h3>
+            <p>${gameState.playerName}无大失败失误，并且出现过大成功表现，收获好评！</p>
+            <p>最终体力：${gameState.stamina}</p>`;
+        }else{
+            imgBox.innerHTML = `<div>[无结局图，平淡收尾]</div>`;
+            textDom.innerHTML = `<h3>平淡收尾</h3>
+            <p>${gameState.playerName}本局没有大失败，但也没有出现任何大成功，普通经营结束。</p>
+            <p>最终体力：${gameState.stamina}</p>`;
+        }
+    }
+}
+</script>
+</body>
+</html>
